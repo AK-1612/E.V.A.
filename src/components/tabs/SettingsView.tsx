@@ -553,8 +553,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="flex flex-col items-center justify-center pt-2 pb-6 space-y-2">
         <AppLogo size="lg" />
         <div className="text-center">
-          <p className="text-sm font-extrabold text-white tracking-wider">A.N.S.H.U.L.</p>
-          <p className="text-[11px] text-[#8E8E93]">Voice Intelligence Platform &bull; v3.2</p>
+          <p className="text-sm font-extrabold text-white tracking-wider">E.V.A.</p>
+          <p className="text-[11px] text-[#8E8E93]">Everpresent Voice Assistant &bull; v3.2</p>
         </div>
       </div>
     </div>

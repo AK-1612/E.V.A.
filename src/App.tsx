@@ -21,6 +21,8 @@ import { FeatureGuideModal } from './components/FeatureGuideModal';
 import { speakText, stopSpeaking, isSpeechRecognitionSupported } from './utils/speech';
 import { sendAssistantMessage } from './utils/llm';
 import { triggerHaptic, setHapticsEnabled } from './utils/haptics';
+import { openWhatsAppChat, openSpotifyApp } from './utils/apps';
+import { getScheduledMessages, saveScheduledMessages } from './utils/contacts';
 
 const DEFAULT_SETTINGS: StoredSettings = {
   welcomeText: 'I am awake and listening. What can I do for you today?',
@@ -194,7 +196,7 @@ export default function App() {
 
   const handleInstallPWA = async () => {
     if (!deferredPrompt) {
-      alert('To install A.N.S.H.U.L. on iOS, tap the Share button in Safari and select "Add to Home Screen".');
+      alert('To install E.V.A. on iOS, tap the Share button in Safari and select "Add to Home Screen".');
       return;
     }
     deferredPrompt.prompt();
@@ -286,6 +288,38 @@ export default function App() {
     setAssistantState('idle');
   }, [settings.welcomeText, speakAnshul]);
 
+  // Periodic Check for Scheduled WhatsApp Messages
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const scheduled = getScheduledMessages();
+      const now = Date.now();
+      let changed = false;
+
+      scheduled.forEach((item) => {
+        if (item.status === 'pending') {
+          const targetTime = new Date(item.scheduledAt).getTime();
+          if (targetTime <= now) {
+            item.status = 'sent';
+            changed = true;
+            triggerHaptic('success');
+            const targetNames = item.recipients.map((r) => r.name).join(', ');
+            speakAnshul(`Scheduled dispatch time reached for ${targetNames}. Opening WhatsApp.`);
+            logInteraction('anshul', `Triggered scheduled WhatsApp message to ${targetNames}`, 'whatsapp');
+            if (item.recipients[0]) {
+              openWhatsAppChat(item.recipients[0].phone, item.message);
+            }
+          }
+        }
+      });
+
+      if (changed) {
+        saveScheduledMessages(scheduled);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [speakAnshul, logInteraction]);
+
   // Execute Command Logic via Standalone LLM Backend
   const processCommand = useCallback(
     async (rawQuery: string) => {
@@ -308,9 +342,13 @@ export default function App() {
       if (llmResult.action === 'whatsapp') {
         if (llmResult.actionPayload?.phone) {
           setInitialWhatsAppPhone(llmResult.actionPayload.phone);
+        } else {
+          setInitialWhatsAppPhone('');
         }
         if (llmResult.actionPayload?.message) {
           setInitialWhatsAppMessage(llmResult.actionPayload.message);
+        } else {
+          setInitialWhatsAppMessage('');
         }
         await speakAnshul(reply);
         setIsWhatsAppOpen(true);
@@ -318,7 +356,11 @@ export default function App() {
       }
 
       if (llmResult.action === 'search') {
-        const searchQuery = llmResult.actionPayload?.query || rawQuery;
+        let searchQuery = llmResult.actionPayload?.query || '';
+        // Sanitize generic placeholder queries so search bar stays clean & empty
+        if (/^(search(\s+something|\s+the\s+web|\s+for\s+something|\s+google)?|\s*)$/i.test(searchQuery.trim())) {
+          searchQuery = '';
+        }
         setInitialSearchQuery(searchQuery);
         await speakAnshul(reply);
         setIsSearchOpen(true);
@@ -327,7 +369,8 @@ export default function App() {
 
       if (llmResult.action === 'music') {
         await speakAnshul(reply);
-        window.open('https://open.spotify.com', '_blank', 'noopener,noreferrer');
+        openSpotifyApp();
+        logInteraction('anshul', 'Opened Spotify application directly', 'music');
         return;
       }
 
@@ -455,11 +498,8 @@ export default function App() {
   const handleSendWhatsApp = (phone: string, msg: string) => {
     triggerHaptic('success');
     setIsWhatsAppOpen(false);
-    const cleanPhone = phone.replace(/[^0-9+]/g, '');
-    const encodedText = encodeURIComponent(msg);
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`;
+    openWhatsAppChat(phone, msg);
     logInteraction('anshul', `Dispatched WhatsApp message to ${phone}`, 'whatsapp');
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
   // Handle Google Search Submission
@@ -477,13 +517,17 @@ export default function App() {
     triggerHaptic('medium');
     switch (action) {
       case 'whatsapp':
-        processCommand('message on whatsapp');
+        setInitialWhatsAppPhone('');
+        setInitialWhatsAppMessage('');
+        setIsWhatsAppOpen(true);
         break;
       case 'search':
-        processCommand('search the web');
+        setInitialSearchQuery('');
+        setIsSearchOpen(true);
         break;
       case 'music':
-        processCommand('play spotify');
+        openSpotifyApp();
+        logInteraction('anshul', 'Opened Spotify application directly', 'music');
         break;
       case 'time':
         processCommand('what time is it');
@@ -507,10 +551,10 @@ export default function App() {
 
             <div>
               <span className="font-extrabold text-sm tracking-tight text-white block leading-none">
-                A.N.S.H.U.L.
+                E.V.A.
               </span>
               <span className="text-[10px] font-medium text-[#8E8E93] leading-none">
-                Voice Intelligence
+                Everpresent Voice Assistant
               </span>
             </div>
           </div>

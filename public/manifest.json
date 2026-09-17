@@ -1,7 +1,7 @@
 {
-  "name": "A.N.S.H.U.L. Voice Assistant",
-  "short_name": "A.N.S.H.U.L.",
-  "description": "A Nice Sophisticated Helpful Unique Listener - Futuristic voice-activated personal assistant.",
+  "name": "E.V.A. - Everpresent Voice Assistant",
+  "short_name": "E.V.A.",
+  "description": "Everpresent Voice Assistant - Futuristic voice-activated personal companion.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090d16",

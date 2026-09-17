@@ -58,7 +58,7 @@ export const FeatureGuideModal: React.FC<FeatureGuideModalProps> = ({ isOpen, on
             <AppLogo size="sm" />
             <div>
               <h3 className="text-base font-bold text-white tracking-tight">Feature Guide</h3>
-              <p className="text-xs text-[#8E8E93] mt-0.5">Key capabilities of A.N.S.H.U.L.</p>
+              <p className="text-xs text-[#8E8E93] mt-0.5">Key capabilities of E.V.A.</p>
             </div>
           </div>
           <button

@@ -5,7 +5,9 @@ import { VoiceAccent } from '../types';
 export function cleanTextForSpeech(text: string): string {
   if (!text) return '';
   return text
-    // Replace acronym dots so A.N.S.H.U.L. is pronounced as 'Anshul'
+    // Replace acronym dots so E.V.A. is pronounced as 'Eva'
+    .replace(/E\.V\.A\./gi, 'Eva')
+    .replace(/E\.V\.A/gi, 'Eva')
     .replace(/A\.N\.S\.H\.U\.L\./gi, 'Anshul')
     .replace(/A\.N\.S\.H\.U\.L/gi, 'Anshul')
     // Remove markdown formatting

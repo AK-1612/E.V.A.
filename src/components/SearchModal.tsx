@@ -15,11 +15,22 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   onSearch,
   initialQuery = '',
 }) => {
-  const [query, setQuery] = useState(initialQuery);
+  // Helper to sanitize query so placeholder words like "search something" don't pollute input
+  const sanitizeQuery = (text: string) => {
+    const trimmed = text.trim();
+    if (/^(search(\s+something|\s+the\s+web|\s+for\s+something|\s+google)?|\s*)$/i.test(trimmed)) {
+      return '';
+    }
+    return trimmed;
+  };
+
+  const [query, setQuery] = useState('');
 
   React.useEffect(() => {
-    setQuery(initialQuery);
-  }, [initialQuery]);
+    if (isOpen) {
+      setQuery(sanitizeQuery(initialQuery));
+    }
+  }, [isOpen, initialQuery]);
 
   if (!isOpen) return null;
 

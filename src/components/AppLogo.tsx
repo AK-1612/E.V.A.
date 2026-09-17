@@ -27,7 +27,7 @@ export const AppLogo: React.FC<AppLogoProps> = ({
     >
       <img
         src={logoImg}
-        alt="A.N.S.H.U.L. Upgrade Logo"
+        alt="E.V.A. Logo"
         referrerPolicy="no-referrer"
         className="w-full h-full object-cover"
         onError={(e) => {

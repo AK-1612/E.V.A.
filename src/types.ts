@@ -48,3 +48,18 @@ export interface WhatsAppFormState {
   scheduledTime?: string;
 }
 
+export interface Contact {
+  id: string;
+  name: string;
+  phone: string;
+  color?: string;
+}
+
+export interface ScheduledWhatsAppMessage {
+  id: string;
+  recipients: Array<{ name: string; phone: string }>;
+  message: string;
+  scheduledAt: string; // ISO string
+  createdAt: string;
+  status: 'pending' | 'sent' | 'cancelled';
+}
