@@ -1,0 +1,10 @@
+{
+  "name": "A.N.S.H.U.L.",
+  "description": "A Nice Sophisticated Helpful Unique Listener. A voice-activated PWA assistant with witty persona, speech recognition, and task execution.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

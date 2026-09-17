@@ -1,0 +1,25 @@
+{
+  "name": "A.N.S.H.U.L. Voice Assistant",
+  "short_name": "A.N.S.H.U.L.",
+  "description": "A Nice Sophisticated Helpful Unique Listener - Futuristic voice-activated personal assistant.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#06b6d4",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/app-logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "productivity"]
+}
