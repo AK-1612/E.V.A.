@@ -1,5 +1,5 @@
 import React from 'react';
-import logoImg from '../assets/images/app_logo_1789636643324.jpg';
+import logoImg from '../assets/images/eva_upgrade_mechamorph_logo_1789644202364.jpg';
 
 interface AppLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';

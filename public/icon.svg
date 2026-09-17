@@ -30,62 +30,55 @@
       <stop offset="100%" stop-color="#031535" />
     </radialGradient>
 
-    <!-- Clip Path for the Bold 'A' -->
-    <clipPath id="aClip">
-      <!-- Outer bold A minus inner triangular counter -->
-      <path fill-rule="evenodd" d="M256 56 L432 440 H336 L298 350 H214 L176 440 H80 Z M256 168 L228 274 H284 Z" />
+    <!-- Clip Path for the Bold 'E' -->
+    <clipPath id="eClip">
+      <path d="M 120 80 H 400 V 160 H 200 V 216 H 360 V 296 H 200 V 352 H 400 V 432 H 120 Z" />
     </clipPath>
   </defs>
 
   <!-- App Icon Base Squircle -->
   <rect width="512" height="512" rx="112" fill="url(#bgGrad)" stroke="#1E2638" stroke-width="4" />
 
-  <!-- Subtle ambient blue core behind the A -->
+  <!-- Subtle ambient blue core behind the E -->
   <circle cx="256" cy="256" r="160" fill="#0A84FF" opacity="0.08" filter="blur(30px)" />
 
-  <!-- The Bold 'A' Shape Container (filled with Upgrade Mechamorph Circuitry) -->
-  <g clip-path="url(#aClip)">
-    <!-- Base dark metallic fill for the A body -->
+  <!-- The Bold 'E' Shape Container (filled with Upgrade Mechamorph Circuitry) -->
+  <g clip-path="url(#eClip)">
+    <!-- Base dark metallic fill for the E body -->
     <rect x="0" y="0" width="512" height="512" fill="#0C101A" />
     
     <!-- Upgrade Cybernetic Circuit Lines (Glowing Blue & White) -->
     <g stroke="url(#circuitGrad)" stroke-linecap="round" stroke-linejoin="round" filter="url(#neonGlow)">
-      <!-- Main spine circuit -->
-      <path d="M256 60 V160" stroke-width="10" stroke="#FFFFFF" />
+      <!-- Main vertical spine circuit -->
+      <path d="M160 80 V432" stroke-width="12" stroke="#FFFFFF" />
+      <path d="M140 100 V400" stroke-width="4" stroke="#00F0FF" />
+      <path d="M180 120 V380" stroke-width="6" stroke="#0A84FF" />
       
-      <!-- Left diagonal trunk & branches -->
-      <path d="M256 90 L180 250 H130 L106 310 V430" stroke-width="8" stroke="#38BDF8" fill="none" />
-      <path d="M180 250 V340 H150" stroke-width="6" stroke="#00F0FF" fill="none" />
-      <path d="M200 180 H140 L115 240" stroke-width="6" stroke="#0A84FF" fill="none" />
-      <path d="M190 320 L150 420" stroke-width="7" stroke="#38BDF8" fill="none" />
-
-      <!-- Right diagonal trunk & branches -->
-      <path d="M256 90 L332 250 H382 L406 310 V430" stroke-width="8" stroke="#38BDF8" fill="none" />
-      <path d="M332 250 V340 H362" stroke-width="6" stroke="#00F0FF" fill="none" />
-      <path d="M312 180 H372 L397 240" stroke-width="6" stroke="#0A84FF" fill="none" />
-      <path d="M322 320 L362 420" stroke-width="7" stroke="#38BDF8" fill="none" />
-
-      <!-- Crossbar circuits -->
-      <path d="M170 310 H342" stroke-width="8" stroke="#FFFFFF" fill="none" />
-      <path d="M200 330 H312" stroke-width="5" stroke="#38BDF8" fill="none" />
-      <path d="M230 350 H282" stroke-width="6" stroke="#00F0FF" fill="none" />
+      <!-- Top horizontal branches -->
+      <path d="M160 120 H360" stroke-width="10" stroke="#FFFFFF" fill="none" />
+      <path d="M160 140 H380" stroke-width="6" stroke="#38BDF8" fill="none" />
+      
+      <!-- Middle horizontal branches -->
+      <path d="M160 256 H320" stroke-width="8" stroke="#38BDF8" fill="none" />
+      <path d="M160 276 H300" stroke-width="5" stroke="#0A84FF" fill="none" />
+      
+      <!-- Bottom horizontal branches -->
+      <path d="M160 392 H360" stroke-width="10" stroke="#FFFFFF" fill="none" />
+      <path d="M160 372 H380" stroke-width="6" stroke="#38BDF8" fill="none" />
 
       <!-- Nano-nodes (Galvanic Mechamorph circuit dots) -->
-      <circle cx="256" cy="70" r="8" fill="#FFFFFF" />
-      <circle cx="130" cy="250" r="7" fill="#FFFFFF" />
-      <circle cx="382" cy="250" r="7" fill="#FFFFFF" />
-      <circle cx="150" cy="340" r="6" fill="#38BDF8" />
-      <circle cx="362" cy="340" r="6" fill="#38BDF8" />
-      <circle cx="106" cy="310" r="6" fill="#00F0FF" />
-      <circle cx="406" cy="310" r="6" fill="#00F0FF" />
-      <circle cx="150" cy="420" r="8" fill="#0A84FF" />
-      <circle cx="362" cy="420" r="8" fill="#0A84FF" />
-      <circle cx="140" cy="180" r="5" fill="#38BDF8" />
-      <circle cx="372" cy="180" r="5" fill="#38BDF8" />
+      <circle cx="360" cy="120" r="8" fill="#FFFFFF" />
+      <circle cx="380" cy="140" r="6" fill="#00F0FF" />
+      <circle cx="320" cy="256" r="7" fill="#FFFFFF" />
+      <circle cx="300" cy="276" r="5" fill="#38BDF8" />
+      <circle cx="360" cy="392" r="8" fill="#FFFFFF" />
+      <circle cx="380" cy="372" r="6" fill="#0A84FF" />
+      <circle cx="160" cy="100" r="10" fill="#00F0FF" />
+      <circle cx="160" cy="412" r="10" fill="#0A84FF" />
     </g>
 
-    <!-- Central Upgrade Optic Eye in the upper apex / crossbar -->
-    <g transform="translate(256, 150)" filter="url(#neonGlow)">
+    <!-- Central Upgrade Optic Eye in the middle bar -->
+    <g transform="translate(240, 256)" filter="url(#neonGlow)">
       <!-- Outer cybernetic ring -->
       <circle cx="0" cy="0" r="28" fill="none" stroke="#0A84FF" stroke-width="5" stroke-dasharray="8 4" />
       <!-- Middle glowing cyan ring -->
@@ -96,9 +89,9 @@
     </g>
   </g>
 
-  <!-- Crisp Outer Border of the 'A' with neon cyan & white edge -->
-  <path fill-rule="evenodd" d="M256 56 L432 440 H336 L298 350 H214 L176 440 H80 Z M256 168 L228 274 H284 Z" fill="none" stroke="#38BDF8" stroke-width="4" opacity="0.9" />
+  <!-- Crisp Outer Border of the 'E' with neon cyan & white edge -->
+  <path d="M 120 80 H 400 V 160 H 200 V 216 H 360 V 296 H 200 V 352 H 400 V 432 H 120 Z" fill="none" stroke="#38BDF8" stroke-width="4" opacity="0.9" />
   
-  <!-- Subtle highlight apex -->
-  <path d="M240 76 L256 56 L272 76" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" />
+  <!-- Subtle highlight apex (top left corner) -->
+  <path d="M 140 80 H 120 V 100" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" />
 </svg>
