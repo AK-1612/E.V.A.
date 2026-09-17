@@ -1,6 +1,6 @@
 {
   "name": "E.V.A.",
-  "description": "Everpresent Voice Assistant. A voice-activated PWA assistant with witty persona, speech recognition, and task execution.",
+  "description": "Voice-activated PWA assistant with natural conversation, speech recognition, and task execution.",
   "requestFramePermissions": [
     "microphone"
   ],

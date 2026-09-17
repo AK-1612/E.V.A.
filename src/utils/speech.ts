@@ -4,7 +4,9 @@ import { VoiceAccent } from '../types';
 
 export function cleanTextForSpeech(text: string): string {
   if (!text) return '';
-  return text
+  // If there are code blocks, strip their content so the speech engine does not recite raw syntax
+  let spokenText = text.replace(/```[\s\S]*?```/g, ' Here is the code shown on screen. ');
+  return spokenText
     // Replace acronym dots so E.V.A. is pronounced as 'Eva'
     .replace(/E\.V\.A\./gi, 'Eva')
     .replace(/E\.V\.A/gi, 'Eva')

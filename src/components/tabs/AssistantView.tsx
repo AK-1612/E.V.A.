@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Mic,
   Volume2,
@@ -10,29 +10,34 @@ import {
   ShieldCheck,
   Send,
 } from 'lucide-react';
-import { AssistantState } from '../../types';
+import { AssistantState, ChatMessage } from '../../types';
 import { triggerHaptic } from '../../utils/haptics';
+import { FormattedResponse } from '../FormattedResponse';
 
 interface AssistantViewProps {
   assistantState: AssistantState;
   transcript: string;
   lastResponse: string;
+  messages: ChatMessage[];
   dateText: string;
   timeText: string;
   onToggleListening: () => void;
   onQuickWake: () => void;
   onSendMessage: (query: string) => void;
+  onStartNewChat: () => void;
 }
 
 export const AssistantView: React.FC<AssistantViewProps> = ({
   assistantState,
   transcript,
   lastResponse,
+  messages,
   dateText,
   timeText,
   onToggleListening,
   onQuickWake,
   onSendMessage,
+  onStartNewChat,
 }) => {
   const isListening = assistantState === 'listening';
   const isSpeaking = assistantState === 'speaking';
@@ -40,7 +45,15 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
   const isRecognizing = assistantState === 'recognizing';
 
   const [inputText, setInputText] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-expand when code or long script is delivered so user sees the code right away
+  useEffect(() => {
+    if (lastResponse && (lastResponse.includes('```') || lastResponse.length > 220)) {
+      setIsExpanded(true);
+    }
+  }, [lastResponse]);
 
   const handleTextSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,9 +81,9 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-between w-full max-w-lg mx-auto px-5 py-5 min-h-[calc(100vh-140px)]">
+    <div className="flex-1 flex flex-col justify-between w-full max-w-lg mx-auto px-4 sm:px-5 py-4 min-h-[calc(100vh-140px)]">
       {/* Top Device Status Bar Header */}
-      <div className="w-full flex items-center justify-between pb-3 border-b border-white/[0.06]">
+      <div className="w-full flex items-center justify-between pb-2.5 border-b border-white/[0.06]">
         <div className="flex items-center space-x-2.5">
           <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,199,89,0.8)]" />
           <span className="text-xs font-semibold text-[#F2F2F7] tracking-tight">
@@ -123,147 +136,171 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
         </div>
       </div>
 
-      {/* Main Centerpiece Voice Core */}
-      <div className="relative my-auto flex flex-col items-center justify-center py-8">
-        {/* Multilayer Soft Ambient Glow */}
+      {/* Main Centerpiece Voice Core - hidden when expanded so answer gets full screen */}
+      {!isExpanded && (
         <div
-          className={`absolute w-80 h-80 rounded-full blur-3xl pointer-events-none transition-all duration-700 ${
-            isListening
-              ? 'bg-rose-500/25 scale-110'
-              : isSpeaking
-              ? 'bg-[#0A84FF]/25 scale-110'
-              : isSleeping
-              ? 'bg-purple-900/20 scale-90'
-              : 'bg-[#0A84FF]/15 scale-100'
+          className={`relative flex flex-col items-center justify-center transition-all duration-300 ${
+            messages.length > 0 ? 'py-1 my-0.5 scale-75 sm:scale-80' : 'my-auto py-5 scale-100'
           }`}
-        />
-
-        {/* Concentric Audio Rings */}
-        <div className="relative w-64 h-64 flex items-center justify-center">
-          {/* Subtle Outer Boundary Ring */}
+        >
+          {/* Multilayer Soft Ambient Glow */}
           <div
-            className={`absolute inset-0 rounded-full border border-white/[0.08] transition-all duration-700 ${
-              isListening || isSpeaking ? 'scale-105 border-[#0A84FF]/30' : ''
-            }`}
-          />
-
-          {/* Dynamic Frequency Ring */}
-          <div
-            className={`absolute inset-3 rounded-full border border-dashed border-[#0A84FF]/20 transition-all ${
-              isListening ? 'animate-spin border-rose-400/40' : isSpeaking ? 'animate-spin border-[#64D2FF]/40' : ''
-            }`}
-            style={{ animationDuration: '24s' }}
-          />
-
-          {/* Central Interactive Voice Orb */}
-          <button
-            onClick={handleMicTap}
-            className={`relative z-10 w-44 h-44 rounded-full flex flex-col items-center justify-center backdrop-blur-2xl transition-all duration-300 active:scale-95 cursor-pointer border shadow-2xl ${
+            className={`absolute w-72 h-72 rounded-full blur-3xl pointer-events-none transition-all duration-700 ${
               isListening
-                ? 'bg-gradient-to-b from-rose-950/80 to-[#1C1C1E] border-rose-500/60 shadow-[0_0_35px_rgba(244,63,94,0.35)] ring-4 ring-rose-500/20'
+                ? 'bg-rose-500/25 scale-110'
                 : isSpeaking
-                ? 'bg-gradient-to-b from-blue-950/80 to-[#1C1C1E] border-[#0A84FF]/60 shadow-[0_0_35px_rgba(10,132,255,0.35)] ring-4 ring-[#0A84FF]/20'
+                ? 'bg-[#0A84FF]/25 scale-110'
                 : isSleeping
-                ? 'bg-[#1C1C1E] border-purple-500/30 shadow-black/80 hover:border-purple-400/50'
-                : 'bg-gradient-to-b from-[#2C2C2E]/60 to-[#1C1C1E] border-white/15 hover:border-[#0A84FF]/50 shadow-[0_12px_40px_rgba(0,0,0,0.6)]'
+                ? 'bg-purple-900/20 scale-90'
+                : 'bg-[#0A84FF]/15 scale-100'
+            }`}
+          />
+
+          {/* Concentric Audio Rings */}
+          <div
+            className={`relative flex items-center justify-center transition-all duration-300 ${
+              messages.length > 0 ? 'w-36 h-36' : 'w-56 h-56'
             }`}
           >
-            {isListening ? (
-              <>
-                <Mic className="w-10 h-10 text-rose-400 animate-pulse" />
-                <span className="text-[11px] font-bold text-white mt-2.5 tracking-wider uppercase">
-                  Listening
-                </span>
-                <span className="text-[10px] text-rose-300/80 mt-0.5">Tap to cancel</span>
-              </>
-            ) : isSpeaking ? (
-              <>
-                <Volume2 className="w-10 h-10 text-[#64D2FF] animate-pulse" />
-                <span className="text-[11px] font-bold text-white mt-2.5 tracking-wider uppercase">
-                  Speaking
-                </span>
-                <span className="text-[10px] text-cyan-300/80 mt-0.5">Tap to pause</span>
-              </>
-            ) : isSleeping ? (
-              <>
-                <Radio className="w-10 h-10 text-purple-400 opacity-80" />
-                <span className="text-[11px] font-bold text-[#E5E5EA] mt-2.5 tracking-wider uppercase">
-                  Standby
-                </span>
-                <span className="text-[10px] text-purple-300/80 mt-0.5">Tap to activate</span>
-              </>
-            ) : (
-              <>
-                <div className="w-12 h-12 rounded-2xl bg-[#0A84FF]/15 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF] shadow-inner mb-1">
-                  <Mic className="w-6 h-6" />
-                </div>
-                <span className="text-[11px] font-bold text-white tracking-wider uppercase">
-                  Ready
-                </span>
-                <span className="text-[10px] text-[#8E8E93] mt-0.5">Tap to speak</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Live Equalizer Visualizer Strip */}
-        <div className="flex items-center justify-center space-x-1.5 h-7 mt-6">
-          {[16, 26, 12, 32, 42, 22, 36, 14, 28, 18].map((h, i) => (
+            {/* Subtle Outer Boundary Ring */}
             <div
-              key={i}
-              className={`w-1 rounded-full transition-all duration-150 ${
-                isListening
-                  ? 'bg-rose-400'
-                  : isSpeaking
-                  ? 'bg-[#64D2FF]'
-                  : isRecognizing
-                  ? 'bg-amber-400'
-                  : 'bg-white/[0.08]'
+              className={`absolute inset-0 rounded-full border border-white/[0.08] transition-all duration-700 ${
+                isListening || isSpeaking ? 'scale-105 border-[#0A84FF]/30' : ''
               }`}
-              style={{
-                height:
-                  isListening || isSpeaking
-                    ? `${Math.max(4, (h * Math.sin((i + 1) * 0.95)) % 22 + 4)}px`
-                    : '4px',
-              }}
             />
-          ))}
-        </div>
-      </div>
 
-      {/* Modern Interaction Transcript & Action Panel */}
-      <div className="w-full space-y-3 pt-2">
-        {/* Output Card */}
-        <div className="w-full p-4.5 rounded-2xl bg-[#1C1C1E]/90 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.06]">
-            <span className="text-[10px] font-bold tracking-wider text-[#0A84FF] uppercase flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-[#0A84FF]" />
-              <span>Voice Intelligence</span>
-            </span>
-            <span className="text-[10px] font-medium text-[#8E8E93]">
-              {isListening ? 'Real-time capture' : 'Response'}
-            </span>
+            {/* Dynamic Frequency Ring */}
+            <div
+              className={`absolute inset-2.5 rounded-full border border-dashed border-[#0A84FF]/20 transition-all ${
+                isListening ? 'animate-spin border-rose-400/40' : isSpeaking ? 'animate-spin border-[#64D2FF]/40' : ''
+              }`}
+              style={{ animationDuration: '24s' }}
+            />
+
+            {/* Central Interactive Voice Orb */}
+            <button
+              onClick={handleMicTap}
+              className={`relative z-10 rounded-full flex flex-col items-center justify-center backdrop-blur-2xl transition-all duration-300 active:scale-95 cursor-pointer border shadow-2xl ${
+                messages.length > 0 ? 'w-28 h-28' : 'w-40 h-40'
+              } ${
+                isListening
+                  ? 'bg-gradient-to-b from-rose-950/80 to-[#1C1C1E] border-rose-500/60 shadow-[0_0_35px_rgba(244,63,94,0.35)] ring-4 ring-rose-500/20'
+                  : isSpeaking
+                  ? 'bg-gradient-to-b from-blue-950/80 to-[#1C1C1E] border-[#0A84FF]/60 shadow-[0_0_35px_rgba(10,132,255,0.35)] ring-4 ring-[#0A84FF]/20'
+                  : isSleeping
+                  ? 'bg-[#1C1C1E] border-purple-500/30 shadow-black/80 hover:border-purple-400/50'
+                  : 'bg-gradient-to-b from-[#2C2C2E]/60 to-[#1C1C1E] border-white/15 hover:border-[#0A84FF]/50 shadow-[0_12px_40px_rgba(0,0,0,0.6)]'
+              }`}
+            >
+              {isListening ? (
+                <>
+                  <Mic className={`${messages.length > 0 ? 'w-6 h-6' : 'w-9 h-9'} text-rose-400 animate-pulse`} />
+                  <span className="text-[9px] font-bold text-white mt-1.5 tracking-wider uppercase">
+                    Listening
+                  </span>
+                  <span className="text-[8px] text-rose-300/80">Tap to cancel</span>
+                </>
+              ) : isSpeaking ? (
+                <>
+                  <Volume2 className={`${messages.length > 0 ? 'w-6 h-6' : 'w-9 h-9'} text-[#64D2FF] animate-pulse`} />
+                  <span className="text-[9px] font-bold text-white mt-1.5 tracking-wider uppercase">
+                    Speaking
+                  </span>
+                  <span className="text-[8px] text-cyan-300/80">Tap to pause</span>
+                </>
+              ) : isSleeping ? (
+                <>
+                  <Radio className={`${messages.length > 0 ? 'w-6 h-6' : 'w-9 h-9'} text-purple-400 opacity-80`} />
+                  <span className="text-[9px] font-bold text-[#E5E5EA] mt-1.5 tracking-wider uppercase">
+                    Standby
+                  </span>
+                  <span className="text-[8px] text-purple-300/80">Tap to activate</span>
+                </>
+              ) : (
+                <>
+                  <div className={`${messages.length > 0 ? 'w-8 h-8' : 'w-11 h-11'} rounded-xl bg-[#0A84FF]/15 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF] shadow-inner mb-0.5`}>
+                    <Mic className={messages.length > 0 ? 'w-4 h-4' : 'w-5 h-5'} />
+                  </div>
+                  <span className="text-[9px] font-bold text-white tracking-wider uppercase">
+                    Ready
+                  </span>
+                  <span className="text-[8px] text-[#8E8E93]">Tap to speak</span>
+                </>
+              )}
+            </button>
           </div>
 
-          <p className="text-sm sm:text-base font-medium text-[#F2F2F7] leading-relaxed">
-            {isListening ? (
-              <span className="text-rose-300 italic">
-                {transcript ? `"${transcript}"` : 'Listening for your voice...'}
-              </span>
-            ) : isRecognizing ? (
-              <span className="text-amber-300/90 italic">
-                Synthesizing response...
-              </span>
-            ) : (
-              lastResponse || '"I am awake and listening. What can I assist you with today?"'
-            )}
-          </p>
+          {/* Live Equalizer Visualizer Strip */}
+          <div className={`flex items-center justify-center space-x-1.5 ${messages.length > 0 ? 'h-4 mt-2' : 'h-6 mt-4'}`}>
+            {[16, 26, 12, 32, 42, 22, 36, 14, 28, 18].map((h, i) => (
+              <div
+                key={i}
+                className={`w-1 rounded-full transition-all duration-150 ${
+                  isListening
+                    ? 'bg-rose-400'
+                    : isSpeaking
+                    ? 'bg-[#64D2FF]'
+                    : isRecognizing
+                    ? 'bg-amber-400'
+                    : 'bg-white/[0.08]'
+                }`}
+                style={{
+                  height:
+                    isListening || isSpeaking
+                      ? `${Math.max(4, (h * Math.sin((i + 1) * 0.95)) % 22 + 4)}px`
+                      : '4px',
+                }}
+              />
+            ))}
+          </div>
         </div>
+      )}
+
+      {/* Modern Interaction Transcript & Action Panel */}
+      <div className="w-full space-y-2 pt-1">
+        {/* Quick Starter Pills when conversation is fresh (0 messages) */}
+        {messages.length === 0 && !isListening && (
+          <div className="flex items-center justify-center flex-wrap gap-1.5 pb-1">
+            {[
+              'Write a Python script',
+              'Explain how Docker works',
+              'Create an API function',
+              'What time is it in Tokyo?',
+            ].map((promptText, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  onSendMessage(promptText);
+                }}
+                className="px-2.5 py-1 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-[11px] text-zinc-300 hover:text-white transition cursor-pointer active:scale-95"
+              >
+                {promptText}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Output Card with Follow-up Chat & Pull-up Expand */}
+        <FormattedResponse
+          messages={messages}
+          lastResponse={lastResponse || '"I am awake and listening. What can I assist you with today?"'}
+          isListening={isListening}
+          isRecognizing={isRecognizing}
+          transcript={transcript}
+          isExpanded={isExpanded}
+          onToggleExpand={() => {
+            triggerHaptic('light');
+            setIsExpanded(!isExpanded);
+          }}
+          onStartNewChat={onStartNewChat}
+        />
 
         {/* WhatsApp-Style Input Pill */}
         <form
           onSubmit={handleTextSubmit}
-          className="w-full flex items-center gap-2 pt-1"
+          className="w-full flex items-center gap-2 pt-0.5"
         >
           <div
             onClick={() => inputRef.current?.focus()}
@@ -292,18 +329,37 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={!inputText.trim()}
-            className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95 shadow-md ${
-              inputText.trim()
-                ? 'bg-[#0A84FF] hover:bg-[#0071E3] text-white shadow-blue-950/50 cursor-pointer'
-                : 'bg-white/[0.08] text-[#8E8E93] cursor-not-allowed opacity-50'
-            }`}
-            aria-label="Send message"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+          {inputText.trim() ? (
+            <button
+              type="submit"
+              className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95 shadow-md bg-[#0A84FF] hover:bg-[#0071E3] text-white shadow-blue-950/50 cursor-pointer"
+              aria-label="Send message"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleMicTap}
+              className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95 shadow-md cursor-pointer ${
+                isListening
+                  ? 'bg-rose-500 text-white animate-pulse shadow-rose-900/50'
+                  : isSpeaking
+                  ? 'bg-[#0A84FF] text-white animate-pulse'
+                  : 'bg-white/[0.08] hover:bg-white/[0.14] text-zinc-300 hover:text-white border border-white/10'
+              }`}
+              aria-label={isListening ? 'Stop listening' : 'Start speaking'}
+              title={isListening ? 'Tap to cancel' : 'Tap to speak'}
+            >
+              {isListening ? (
+                <Mic className="w-4 h-4 text-white" />
+              ) : isSpeaking ? (
+                <Volume2 className="w-4 h-4 text-white" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+            </button>
+          )}
         </form>
       </div>
     </div>

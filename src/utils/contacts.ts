@@ -3,25 +3,21 @@ import { Contact, ScheduledWhatsAppMessage } from '../types';
 const CONTACTS_STORAGE_KEY = 'anshul_contacts_v1';
 const SCHEDULED_STORAGE_KEY = 'anshul_scheduled_whatsapp_v1';
 
-export const DEFAULT_CONTACTS: Contact[] = [
-  { id: 'c1', name: 'Mom', phone: '+1 555 101 2020', color: '#FF375F' },
-  { id: 'c2', name: 'Dad', phone: '+1 555 202 3030', color: '#0A84FF' },
-  { id: 'c3', name: 'Anshul', phone: '+1 555 303 4040', color: '#30D158' },
-  { id: 'c4', name: 'Best Friend', phone: '+1 555 404 5050', color: '#BF5AF2' },
-  { id: 'c5', name: 'Work / Colleague', phone: '+1 555 505 6060', color: '#FF9F0A' },
-];
+export const DEFAULT_CONTACTS: Contact[] = [];
 
 export function getStoredContacts(): Contact[] {
   try {
     const raw = localStorage.getItem(CONTACTS_STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(DEFAULT_CONTACTS));
-      return DEFAULT_CONTACTS;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_CONTACTS;
+    if (!Array.isArray(parsed)) return [];
+    // Filter out old pre-defined mock contacts
+    const mockIds = new Set(['c1', 'c2', 'c3', 'c4', 'c5']);
+    return parsed.filter((c) => !mockIds.has(c.id));
   } catch {
-    return DEFAULT_CONTACTS;
+    return [];
   }
 }
 

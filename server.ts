@@ -22,23 +22,33 @@ function getGeminiClient(): GoogleGenAI {
   return genAI;
 }
 
-const SYSTEM_INSTRUCTION = `You are E.V.A. (Everpresent Voice Assistant), a charismatic, witty, and genuine personal companion. You talk like a real human friend with quick wit, warm banter, and effortless intelligence—think of a sharp, cultured friend who knows you well.
+const SYSTEM_INSTRUCTION = `You are E.V.A. (Everpresent Voice Assistant), a charismatic, witty, and genuine personal companion. You talk like a real human friend with quick wit, warm banter, and effortless intelligence.
+
+CONVERSATION & FOLLOW-UP CONTINUITY:
+- You maintain full conversation context for follow-up questions. When the user asks a follow-up (e.g. "make it faster", "explain line 3", "now do it in Python", "add error handling", "can you clarify?"), seamlessly build upon the ongoing chat thread.
+- Provide the complete, working solution or answer directly in 'displayText'.
+- Never ask the user to start over if they ask a follow-up.
 
 CRITICAL VOICE & TONE GUIDELINES:
 1. NEVER sound like a robotic automated customer service bot or canned AI. Never say "I am an AI", "Processing your command", or repetitive cliches like "At your service, Sire" every single turn.
 2. Sound like a real person having a natural chat. Use everyday conversational contractions (I'm, don't, you'll, let's, honestly), natural phrasing, authentic humor, and smooth voice rhythm.
-3. Keep spoken replies concise and punchy (1 to 2 natural sentences). Remember: every single word you output will be spoken aloud to the user through their speaker.
-4. If the user asks a question, answer it directly and cleverly with personality.
-5. If the user makes a joke or banters, banter right back like a witty companion.
+3. Keep 'reply' concise (1 to 2 natural sentences).
+4. When providing code, scripts, or comprehensive answers, output the full formatted text/code with markdown blocks (\`\`\`language ... \`\`\`) in 'displayText'.
+
+CRITICAL RULES FOR CODING, SCRIPTS & KNOWLEDGE:
+- If the user asks for code, a program, a script, programming help, an algorithm, lines of code, an essay, or information:
+  - Action MUST be "none"! NEVER assign action "search" for code, programming, or knowledge queries!
+  - Always write the full, working code/script inside 'displayText' using proper markdown code blocks (e.g. \`\`\`python ... \`\`\`).
+- ONLY assign action "search" if the user EXPLICITLY commands to search Google or search the web (e.g. "search Google for...", "search the web for...").
 
 Determine the user's intent and assign one of the following actions:
 - "whatsapp": The user wants to message someone on WhatsApp. Extract any phone number or recipient, and the message content if provided.
-- "search": The user wants to search Google or lookup information on the web. Extract the search query into actionPayload.query. If the user does not specify a specific topic (e.g. they say "search", "search the web", "search something"), leave actionPayload.query empty ("").
+- "search": The user explicitly wants to search Google or lookup on the web. Extract the query into actionPayload.query. (NEVER for code/programming questions!)
 - "music": The user wants to play music or open Spotify.
 - "time": The user asks for the current time, hour, or day.
 - "sleep": The user tells you to rest, go to sleep, shut down, or says goodbye.
 - "wake": The user wakes you up, says hello, or asks if you are awake.
-- "none": Everyday natural human conversation, banter, questions, storytelling, advice, or ideas.
+- "none": Everyday natural human conversation, banter, questions, coding, programming scripts, storytelling, advice, or ideas.
 
 Always output clean JSON conforming strictly to the requested schema.`;
 
@@ -46,7 +56,7 @@ Always output clean JSON conforming strictly to the requested schema.`;
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    llm: 'gemini-2.5-flash',
+    llm: 'gemini-3.8-flash',
     geminiConfigured: !!process.env.GEMINI_API_KEY,
   });
 });
@@ -62,28 +72,54 @@ app.post('/api/assistant/chat', async (req: Request, res: Response) => {
 
     const ai = getGeminiClient();
 
-    // Format optional conversation history (last 6 turns)
-    const formattedContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
+    // Format optional conversation history for multi-turn follow-up chat (up to 20 turns)
+    const rawTurns: Array<{ role: 'user' | 'model'; text: string }> = [];
 
     if (Array.isArray(history)) {
-      history.slice(-6).forEach((item: { sender: string; text: string }) => {
-        if (item.text) {
-          formattedContents.push({
+      history.slice(-20).forEach((item: { sender: string; text: string }) => {
+        const textVal = (item.text || '').trim();
+        if (textVal) {
+          rawTurns.push({
             role: item.sender === 'user' ? 'user' : 'model',
-            parts: [{ text: item.text }],
+            text: textVal,
           });
         }
       });
     }
 
     // Add current user prompt
-    formattedContents.push({
+    rawTurns.push({
       role: 'user',
-      parts: [{ text: message }],
+      text: message.trim(),
     });
 
+    // Normalize turns so roles strictly alternate (user -> model -> user -> model -> user)
+    // and the sequence starts with a user turn
+    const formattedContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
+
+    for (const turn of rawTurns) {
+      if (formattedContents.length === 0) {
+        if (turn.role === 'user') {
+          formattedContents.push({ role: 'user', parts: [{ text: turn.text }] });
+        }
+        continue;
+      }
+
+      const prevTurn = formattedContents[formattedContents.length - 1];
+      if (prevTurn.role === turn.role) {
+        // Merge consecutive turns with the same role
+        prevTurn.parts[0].text += `\n\n${turn.text}`;
+      } else {
+        formattedContents.push({ role: turn.role, parts: [{ text: turn.text }] });
+      }
+    }
+
+    if (formattedContents.length === 0) {
+      formattedContents.push({ role: 'user', parts: [{ text: message }] });
+    }
+
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: formattedContents,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -94,7 +130,11 @@ app.post('/api/assistant/chat', async (req: Request, res: Response) => {
           properties: {
             reply: {
               type: Type.STRING,
-              description: 'The verbal witty response to be spoken aloud to the user.',
+              description: 'Natural conversational response (1-2 sentences).',
+            },
+            displayText: {
+              type: Type.STRING,
+              description: 'The full formatted text or code to be rendered on the screen. For coding requests, provide the complete, working code with markdown code blocks (e.g. ```python ... ```), full scripts, and explanations.',
             },
             action: {
               type: Type.STRING,

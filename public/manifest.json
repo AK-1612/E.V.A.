@@ -1,7 +1,7 @@
 {
-  "name": "E.V.A. - Everpresent Voice Assistant",
+  "name": "E.V.A.",
   "short_name": "E.V.A.",
-  "description": "Everpresent Voice Assistant - Futuristic voice-activated personal companion.",
+  "description": "Futuristic voice-activated personal companion.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090d16",

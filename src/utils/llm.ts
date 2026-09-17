@@ -14,7 +14,9 @@ export async function sendAssistantMessage(
       const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       const systemPrompt = `You are E.V.A. (Everpresent Voice Assistant), a charismatic, natural, witty friend and confidant. Never sound like a robot, bot, or automated system. Speak with genuine voice, contractions (I'm, don't, that's), natural humor, and real warmth.
-Respond strictly in JSON: {"reply": "1-2 natural sentences to be spoken aloud", "action": "none"|"whatsapp"|"search"|"music"|"time"|"sleep"|"wake", "actionPayload": {"phone": "", "message": "", "query": ""}}`;
+CRITICAL: If the user asks for code, programs, scripts, recipes, or explanations, action must be "none" (NEVER search!). Provide the full code/script in 'displayText' with markdown code blocks (\`\`\`language ... \`\`\`), and a short spoken summary in 'reply'.
+Only use "search" if user explicitly asks to search the web or Google.
+Respond strictly in JSON: {"reply": "1-2 natural sentences to be spoken aloud", "displayText": "Full markdown text/code to show on screen", "action": "none"|"whatsapp"|"search"|"music"|"time"|"sleep"|"wake", "actionPayload": {"phone": "", "message": "", "query": ""}}`;
 
       try {
         const directRes = await fetch(`${host}/api/generate`, {
@@ -37,6 +39,7 @@ Respond strictly in JSON: {"reply": "1-2 natural sentences to be spoken aloud", 
           const parsed = JSON.parse(data.response);
           return {
             reply: parsed.reply || data.response,
+            displayText: parsed.displayText || parsed.reply || data.response,
             action: parsed.action || 'none',
             actionPayload: parsed.actionPayload,
             providerUsed: 'ollama',
@@ -89,7 +92,7 @@ Respond strictly in JSON: {"reply": "1-2 natural sentences to be spoken aloud", 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message,
-        history: history.slice(-6).map((h) => ({ sender: h.sender, text: h.text })),
+        history: history.slice(-20).map((h) => ({ sender: h.sender, text: h.text })),
       }),
     });
 

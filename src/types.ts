@@ -12,6 +12,14 @@ export interface CommandHistoryItem {
   actionType?: 'whatsapp' | 'search' | 'music' | 'time' | 'sleep' | 'wake' | 'general';
 }
 
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'anshul';
+  text: string;
+  displayText?: string;
+  timestamp: string;
+}
+
 export type VoiceAccent = 'us' | 'uk' | 'in' | 'au';
 
 export interface StoredSettings {
@@ -32,6 +40,7 @@ export interface StoredSettings {
 
 export interface AssistantChatResponse {
   reply: string;
+  displayText?: string;
   action: 'none' | 'whatsapp' | 'search' | 'music' | 'time' | 'sleep' | 'wake';
   actionPayload?: {
     phone?: string;

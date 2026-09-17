@@ -8,6 +8,7 @@ import {
   AssistantState,
   AppTab,
   CommandHistoryItem,
+  ChatMessage,
   StoredSettings,
 } from './types';
 import { TabBar } from './components/TabBar';
@@ -121,6 +122,38 @@ export default function App() {
   const [lastResponse, setLastResponse] = useState<string>(
     '"I am awake and listening. What can I assist you with today?"'
   );
+
+  // Active Follow-up Chat Conversation
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem('eva_active_chat_v3');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to load active chat', e);
+    }
+    return [];
+  });
+
+  // Save Active Chat
+  useEffect(() => {
+    try {
+      localStorage.setItem('eva_active_chat_v3', JSON.stringify(chatMessages));
+    } catch (e) {
+      console.error('Failed to persist active chat', e);
+    }
+  }, [chatMessages]);
+
+  const handleStartNewChat = useCallback(() => {
+    triggerHaptic('medium');
+    setChatMessages([]);
+    setLastResponse('');
+    try {
+      localStorage.removeItem('eva_active_chat_v3');
+    } catch (e) {
+      console.warn('Failed to clear active chat storage', e);
+    }
+  }, []);
+
   const [hasInitialized, setHasInitialized] = useState(false);
 
   // Feature Guide Modal (in Settings only)
@@ -235,14 +268,15 @@ export default function App() {
 
   // High Fidelity Speech Output with Humanization
   const speakAnshul = useCallback(
-    async (text: string) => {
+    async (text: string, displayText?: string) => {
+      const textToShow = displayText || text;
+      setLastResponse(textToShow);
+      logInteraction('anshul', textToShow);
+
       if (!settings.soundEnabled || !text) {
-        setLastResponse(text);
         return;
       }
 
-      setLastResponse(text);
-      logInteraction('anshul', text);
       isSpeakingRef.current = true;
       setAssistantState('speaking');
 
@@ -324,19 +358,50 @@ export default function App() {
   const processCommand = useCallback(
     async (rawQuery: string) => {
       const query = rawQuery.toLowerCase().trim();
+      const now = new Date();
+      const timeFormatted = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      // Create and append user chat message for follow-up thread
+      const userChatMsg: ChatMessage = {
+        id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        sender: 'user',
+        text: rawQuery,
+        timestamp: timeFormatted,
+      };
+
+      setChatMessages((prev) => [...prev, userChatMsg]);
       logInteraction('user', rawQuery);
       setAssistantState('recognizing');
 
       // Immediate wake command
       if (query.includes('wake up') || query.includes('wake')) {
         setAssistantState('idle');
-        await speakAnshul('I am awake. How can I assist you?');
+        const wakeText = 'I am awake. How can I assist you?';
+        const wakeMsg: ChatMessage = {
+          id: `anshul-${Date.now()}`,
+          sender: 'anshul',
+          text: wakeText,
+          displayText: wakeText,
+          timestamp: timeFormatted,
+        };
+        setChatMessages((prev) => [...prev, wakeMsg]);
+        await speakAnshul(wakeText);
         return;
       }
 
-      // Query Standalone LLM
-      const llmResult = await sendAssistantMessage(rawQuery, history, settings);
+      // Query Standalone LLM with current conversation history for multi-turn follow-ups
+      const currentThread = [...chatMessages, userChatMsg];
+      const llmResult = await sendAssistantMessage(rawQuery, currentThread, settings);
+      const displayText = llmResult.displayText || llmResult.reply || 'I am here and ready to help.';
       const reply = llmResult.reply || 'I am here and ready to help.';
+
+      // Check if query or response involves code, programming, script, or technical solutions
+      const isCodingOrDirectQuestion =
+        /(\b(code|program|prog|script|function|algorithm|python|javascript|typescript|java|c\+\+|html|css|sql|write|create|solve|implement|syntax|loop|class)\b)/i.test(
+          rawQuery
+        ) ||
+        displayText.includes('```') ||
+        reply.includes('```');
 
       // Handle Recognized Action Triggers
       if (llmResult.action === 'whatsapp') {
@@ -350,32 +415,56 @@ export default function App() {
         } else {
           setInitialWhatsAppMessage('');
         }
-        await speakAnshul(reply);
         setIsWhatsAppOpen(true);
+        const actionMsg: ChatMessage = {
+          id: `anshul-${Date.now()}`,
+          sender: 'anshul',
+          text: reply,
+          displayText: reply,
+          timestamp: timeFormatted,
+        };
+        setChatMessages((prev) => [...prev, actionMsg]);
+        setAssistantState('idle');
         return;
       }
 
-      if (llmResult.action === 'search') {
+      // If user asks for code or program, NEVER open Google search! Show the answer right on screen!
+      if (llmResult.action === 'search' && !isCodingOrDirectQuestion) {
         let searchQuery = llmResult.actionPayload?.query || '';
         // Sanitize generic placeholder queries so search bar stays clean & empty
         if (/^(search(\s+something|\s+the\s+web|\s+for\s+something|\s+google)?|\s*)$/i.test(searchQuery.trim())) {
           searchQuery = '';
         }
         setInitialSearchQuery(searchQuery);
-        await speakAnshul(reply);
         setIsSearchOpen(true);
+        const actionMsg: ChatMessage = {
+          id: `anshul-${Date.now()}`,
+          sender: 'anshul',
+          text: reply,
+          displayText: reply,
+          timestamp: timeFormatted,
+        };
+        setChatMessages((prev) => [...prev, actionMsg]);
+        setAssistantState('idle');
         return;
       }
 
       if (llmResult.action === 'music') {
-        await speakAnshul(reply);
         openSpotifyApp();
         logInteraction('anshul', 'Opened Spotify application directly', 'music');
+        const actionMsg: ChatMessage = {
+          id: `anshul-${Date.now()}`,
+          sender: 'anshul',
+          text: reply,
+          displayText: reply,
+          timestamp: timeFormatted,
+        };
+        setChatMessages((prev) => [...prev, actionMsg]);
+        setAssistantState('idle');
         return;
       }
 
       if (llmResult.action === 'time') {
-        const now = new Date();
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const dayName = days[now.getDay()];
         const hour = now.getHours();
@@ -383,26 +472,63 @@ export default function App() {
         const period = hour >= 12 ? 'PM' : 'AM';
         const displayHour = hour % 12 || 12;
         const displayMin = minute < 10 ? '0' + minute : minute;
-        await speakAnshul(`${reply} It is ${dayName}, ${displayHour}:${displayMin} ${period}.`);
+        const timeReply = `${reply} It is ${dayName}, ${displayHour}:${displayMin} ${period}.`;
+        const timeMsg: ChatMessage = {
+          id: `anshul-${Date.now()}`,
+          sender: 'anshul',
+          text: timeReply,
+          displayText: timeReply,
+          timestamp: timeFormatted,
+        };
+        setChatMessages((prev) => [...prev, timeMsg]);
+        setLastResponse(timeReply);
+        logInteraction('anshul', timeReply, 'time');
+        setAssistantState('idle');
         return;
       }
 
       if (llmResult.action === 'sleep') {
-        await speakAnshul(reply);
+        const sleepMsg: ChatMessage = {
+          id: `anshul-${Date.now()}`,
+          sender: 'anshul',
+          text: reply,
+          displayText: reply,
+          timestamp: timeFormatted,
+        };
+        setChatMessages((prev) => [...prev, sleepMsg]);
         setAssistantState('sleeping');
         return;
       }
 
       if (llmResult.action === 'wake') {
         setAssistantState('idle');
-        await speakAnshul(reply);
+        const wakeMsg: ChatMessage = {
+          id: `anshul-${Date.now()}`,
+          sender: 'anshul',
+          text: reply,
+          displayText: reply,
+          timestamp: timeFormatted,
+        };
+        setChatMessages((prev) => [...prev, wakeMsg]);
         return;
       }
 
-      // Conversational Intelligent Dialogue
-      await speakAnshul(reply);
+      // Conversational Intelligent Dialogue & In-App Code / Answer Display
+      // No announcing on generating an answer -> seamlessly render in chat thread!
+      const assistantChatMsg: ChatMessage = {
+        id: `anshul-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        sender: 'anshul',
+        text: reply,
+        displayText: displayText,
+        timestamp: `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`,
+      };
+
+      setChatMessages((prev) => [...prev, assistantChatMsg]);
+      setLastResponse(displayText);
+      logInteraction('anshul', displayText, 'general');
+      setAssistantState('idle');
     },
-    [history, logInteraction, settings, speakAnshul]
+    [chatMessages, logInteraction, settings, speakAnshul]
   );
 
   // Setup Web Speech Recognition
@@ -553,9 +679,6 @@ export default function App() {
               <span className="font-extrabold text-sm tracking-tight text-white block leading-none">
                 E.V.A.
               </span>
-              <span className="text-[10px] font-medium text-[#8E8E93] leading-none">
-                Everpresent Voice Assistant
-              </span>
             </div>
           </div>
 
@@ -589,6 +712,7 @@ export default function App() {
             assistantState={assistantState}
             transcript={transcript}
             lastResponse={lastResponse}
+            messages={chatMessages}
             dateText={dateText}
             timeText={timeText}
             onToggleListening={toggleListening}
@@ -597,6 +721,7 @@ export default function App() {
               speakAnshul('Assistant active. How may I help you?');
             }}
             onSendMessage={processCommand}
+            onStartNewChat={handleStartNewChat}
           />
         )}
 

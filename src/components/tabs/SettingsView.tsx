@@ -554,7 +554,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <AppLogo size="lg" />
         <div className="text-center">
           <p className="text-sm font-extrabold text-white tracking-wider">E.V.A.</p>
-          <p className="text-[11px] text-[#8E8E93]">Everpresent Voice Assistant &bull; v3.2</p>
+          <p className="text-[11px] text-[#8E8E93]">Version 3.2</p>
         </div>
       </div>
     </div>
